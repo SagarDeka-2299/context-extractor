@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Setup - {{ task_type|title }} Extraction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+        <h2 class="text-2xl font-bold mb-2">{{ task_type|title }} Extractor</h2>
+        <p class="text-gray-500 mb-6 text-sm">Upload your PDF to begin extraction.</p>
+        
+        {% if error %}
+        <div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <input type="hidden" name="doc_type" value="{{ task_type }}">
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select PDF Document</label>
+                
+                <div class="flex items-center justify-center w-full">
+                    <label for="file-upload" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg class="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            
+                            <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        </div>
+                        
+                        <input id="file-upload" name="file" type="file" class="hidden" accept=".pdf" required />
+                    </label>
+                </div>
+
+                <div id="filename-display" class="hidden mt-3 p-3 bg-indigo-50 text-indigo-700 text-sm rounded-lg flex items-center gap-2">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path></svg>
+                    <span id="filename-text" class="truncate font-medium"></span>
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <a href="{% url 'home' %}" class="flex-1 py-2 text-center text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm font-medium">Cancel</a>
+                <button type="submit" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium shadow-sm transition-all">Start Extraction</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-upload');
+        const displayContainer = document.getElementById('filename-display');
+        const displayText = document.getElementById('filename-text');
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const name = this.files[0].name;
+                displayText.textContent = name;
+                displayContainer.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

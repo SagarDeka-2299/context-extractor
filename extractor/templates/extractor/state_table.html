@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Results - {{ task_type|title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-8">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ task_type|title }} Extraction Results</h1>
+                <p class="text-sm text-gray-500 mt-1">Found {{ table_data|length }} records.</p>
+            </div>
+            
+            <div class="flex gap-3 items-center">
+                <a href="{% url 'semantic_search' task_type=task_type %}" 
+                class="p-3 text-lg bg-gray-200 text-indigo-600 rounded-full hover:bg-gray-300 transition-colors shadow-sm"
+                title="Semantic Search">
+                    <i class="fa-solid fa-comments"></i>
+                </a>
+                
+                <a href="{% url task_type|add:'_doc_setup_param' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> New Extraction
+                </a>
+
+                <a href="{% url 'home' %}" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+                    Close / Back
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            {% if table_data %}
+                                {% for key in table_data.0.keys %}
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {{ key|title }}
+                                    </th>
+                                {% endfor %}
+                            {% else %}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No Data</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in table_data %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            {% for value in row.values %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {% if value == None %}
+                                        <span class="text-gray-400">-</span>
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td class="px-6 py-10 text-center text-gray-500">
+                                No records found in the database.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

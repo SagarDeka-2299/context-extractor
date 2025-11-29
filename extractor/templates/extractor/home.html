@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Context Extractor Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-8">
+
+    <div class="max-w-4xl mx-auto mb-12 text-center">
+        <h1 class="text-3xl font-bold text-gray-900">Document Extraction Tool</h1>
+        <p class="text-gray-500 mt-2">Select a document type below to begin processing.</p>
+    </div>
+
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <a href="{% url 'get_status_schedule_doc' %}" class="block group">
+            <div class="bg-indigo-50 border border-indigo-100 p-8 rounded-xl flex flex-col justify-between h-56 hover:shadow-lg transition-all hover:-translate-y-1">
+                <div>
+                    <h2 class="text-xl font-bold text-indigo-900 group-hover:text-indigo-700">Project Schedule</h2>
+                    <p class="text-indigo-600/70 mt-2">Upload Gantt charts or timeline documents to extract dates and milestones.</p>
+                </div>
+                
+                {% if state.schedule == 'success' %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
+                        <span class="text-sm font-medium text-green-700">Success: Data Ready</span>
+                    </div>
+                {% elif state.schedule == 'running' %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>
+                        <span class="text-sm font-medium text-blue-700">Processing...</span>
+                    </div>
+                {% else %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span></span>
+                        <span class="text-sm font-medium text-gray-600">Start New Extraction</span>
+                    </div>
+                {% endif %}
+            </div>
+        </a>
+
+        <a href="{% url 'get_status_area_doc' %}" class="block group">
+            <div class="bg-orange-50 border border-orange-100 p-8 rounded-xl flex flex-col justify-between h-56 hover:shadow-lg transition-all hover:-translate-y-1">
+                <div>
+                    <h2 class="text-xl font-bold text-orange-900 group-hover:text-orange-700">Area Definition</h2>
+                    <p class="text-orange-600/70 mt-2">Upload URA Circulars to extract GFA definitions and numerical rules.</p>
+                </div>
+
+                {% if state.area == 'success' %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
+                        <span class="text-sm font-medium text-green-700">Success: Data Ready</span>
+                    </div>
+                {% elif state.area == 'running' %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>
+                        <span class="text-sm font-medium text-blue-700">Processing...</span>
+                    </div>
+                {% else %}
+                    <div class="flex items-center gap-2 bg-white/60 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                        <span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span></span>
+                        <span class="text-sm font-medium text-gray-600">Start New Extraction</span>
+                    </div>
+                {% endif %}
+            </div>
+        </a>
+
+    </div>
+</body>
+</html>
