@@ -6,7 +6,7 @@ import pdfplumber
 import pandas as pd
 import re
 import sys
-import dlt 
+from sqlalchemy import create_engine, text
 import requests
 from typing import List, Set
 from PIL import Image
@@ -71,11 +71,11 @@ CSV_OUTPUT_FILE = config.OUTPUT_ROOT / "pdf_analysis_report.csv"
 RULES_CSV_OUTPUT_FILE = config.OUTPUT_ROOT / "structured_rules.csv"
 
 # 2. Database Connection
-DB_USER = os.getenv("DB_USER", "proplens_admin")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Stark2299@")
-DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "doc_extract_db")
+DB_USER = os.getenv("DB_USER","")
+DB_PASSWORD = os.getenv("DB_PASSWORD","")
+DB_HOST = os.getenv("DB_HOST","127.0.0.1")
+DB_PORT = os.getenv("DB_PORT",'5432')
+DB_NAME = os.getenv("DB_NAME")
 
 safe_user = urllib.parse.quote_plus(DB_USER)
 safe_password = urllib.parse.quote_plus(DB_PASSWORD)
@@ -93,51 +93,53 @@ from langchain_core.messages import AIMessage
 
 #===============TEST========TODO:REMOVE
 
-class DummyChatOpenAI1(Runnable):
-    def invoke(self, input, config=None):
-        choices = ["YES", "NO"]
-        picked = random.choice(choices)
-        time.sleep(2)       # can be whatever delay you want
-        return AIMessage(content=picked)
+# class DummyChatOpenAI1(Runnable):
+#     def invoke(self, input, config=None):
+#         choices = ["YES", "NO"]
+#         picked = random.choice(choices)
+#         time.sleep(2)       # can be whatever delay you want
+#         return AIMessage(content=picked)
 
-class RegulatoryRule(BaseModel):
-    rule_id: str = Field(description="Unique identifier (e.g., Q1, Q2, Q17)")
-    rule_summary: str = Field(description="A concise summary of the rule/clarification")
-    measurement_basis: str = Field(description="Key measurement principle and associated rule (e.g., 'middle of the external wall')")
+# class RegulatoryRule(BaseModel):
+#     rule_id: str = Field(description="Unique identifier (e.g., Q1, Q2, Q17)")
+#     rule_summary: str = Field(description="A concise summary of the rule/clarification")
+#     measurement_basis: str = Field(description="Key measurement principle and associated rule (e.g., 'middle of the external wall')")
 
 
-class DummyChatOpenAI2(Runnable):
-    def invoke(self, input, config=None):
-        # Fabricated sample rule entries to pick from
-        candidates = [
-            RegulatoryRule(
-                rule_id="Q1",
-                rule_summary="Clarifies that measurements should exclude decorative projections.",
-                measurement_basis="Measure from the middle of the external wall face."
-            ),
-            RegulatoryRule(
-                rule_id="Q7",
-                rule_summary="Defines how to treat irregular building edges during assessment.",
-                measurement_basis="Use perpendicular offset from the dominant structural line."
-            ),
-            RegulatoryRule(
-                rule_id="Q17",
-                rule_summary="Explains handling of partial obstructions in view analysis.",
-                measurement_basis="Reference the nearest unobstructed structural surface."
-            ),
-        ]
+# class DummyChatOpenAI2(Runnable):
+#     def invoke(self, input, config=None):
+#         # Fabricated sample rule entries to pick from
+#         candidates = [
+#             RegulatoryRule(
+#                 rule_id="Q1",
+#                 rule_summary="Clarifies that measurements should exclude decorative projections.",
+#                 measurement_basis="Measure from the middle of the external wall face."
+#             ),
+#             RegulatoryRule(
+#                 rule_id="Q7",
+#                 rule_summary="Defines how to treat irregular building edges during assessment.",
+#                 measurement_basis="Use perpendicular offset from the dominant structural line."
+#             ),
+#             RegulatoryRule(
+#                 rule_id="Q17",
+#                 rule_summary="Explains handling of partial obstructions in view analysis.",
+#                 measurement_basis="Reference the nearest unobstructed structural surface."
+#             ),
+#         ]
 
-        picked = random.choice(candidates)
+#         picked = random.choice(candidates)
 
-        time.sleep(2)
+#         time.sleep(2)
 
-        # Return as JSON string in an AIMessage
-        return AIMessage(content=picked.model_dump_json())
+#         # Return as JSON string in an AIMessage
+#         return AIMessage(content=picked.model_dump_json())
 
-def get_llm_detector():
-    return DummyChatOpenAI1()
-def get_llm_extractor():
-    return DummyChatOpenAI2()
+# def get_llm_detector():
+#     return DummyChatOpenAI1()
+# def get_llm_extractor():
+#     return DummyChatOpenAI2()
+
+#===============TODO: REMOVE
 
 #Get Embeddings Model
 embeddings = OpenAIEmbeddings(
@@ -145,16 +147,14 @@ embeddings = OpenAIEmbeddings(
     api_key=os.getenv("OPENAI_API_KEY_SUPPORT_EMBEDDING"),
     base_url=os.getenv("OPENAI_BASE_URL_SUPPORT_EMBEDDING")
 )
-#===============TODO: REMOVE
-
 #=============
 os.environ["OPENAI_API_KEY"]=os.environ["OPENAI_API_KEY_SUPPORT_IMG"]
 os.environ["OPENAI_BASE_URL"]=os.environ["OPENAI_BASE_URL_SUPPORT_IMG"]
 # 3. Model Initialization
-# def get_llm_detector():
-#     return ChatOpenAI(model="gpt-5-nano")
-# def get_llm_extractor():
-#     return ChatOpenAI(model="gpt-5")
+def get_llm_detector():
+    return ChatOpenAI(model="gpt-5-nano")
+def get_llm_extractor():
+    return ChatOpenAI(model="gpt-5")
 
 
 # 4. Pydantic Model for Extraction
@@ -470,41 +470,49 @@ def structure_rule_with_llm(qa_block):
         logger.exception(f"Failed to structure rule {rule_id}")
         raise e
 
-@task(name="Load to Database (DLT Postgres)", retries=3, retry_delay_seconds=2)
-def load_rules_to_db(rules_data: List[dict]):
+@task(name="Load to Database (SQLAlchemy Dump)")
+def load_rules_to_db(rules_df: pd.DataFrame):
     """
-    Loads rules to PostgreSQL using DLT in SIMPLE DUMP MODE.
-    - No Pydantic schema contracts.
-    - No Freezing.
-    - Full Refresh (Truncate + Insert).
+    Loads rules to PostgreSQL using Pandas + SQLAlchemy.
+    TRUNCATES the table first, then inserts the DataFrame.
     """
-    logger.info(f"Initiating DLT load to PostgreSQL...")
+    logger.info(f"Initiating Raw SQL load to PostgreSQL...")
     
-    # 1. Initialize Pipeline with full_refresh=True
-    # This nukes dlt's internal state tracking to prevent "schema mismatch" errors
-    pipeline = dlt.pipeline(
-        pipeline_name="area_definition_pipeline",
-        destination=dlt.destinations.postgres(credentials=SQL_CONNECTION_STRING),
-        dataset_name="public",
-        full_refresh=True 
-    )
+    # 1. Create SQLAlchemy Engine
+    engine = create_engine(SQL_CONNECTION_STRING.replace("postgresql://", "postgresql+psycopg2://"))
     
+    # 2. CRITICAL: Clean Primary Key (Strips whitespace/nulls before load)
+    # The dataframe should already have keys: rule_id, rule_summary, measurement_basis
+    df = rules_df.copy()
+    df['rule_id'] = df['rule_id'].astype(str).str.strip()
+    df['rule_id'] = df['rule_id'].replace('', pd.NA)
+    cleaned_df = df.dropna(subset=['rule_id'])
+    
+    if len(cleaned_df) == 0:
+        logger.warning("No valid records found after cleaning Primary Key. Skipping DB load.")
+        return 0
+
     try:
-        # 2. Run Pipeline (Simplest method)
-        # We pass the data directly. dlt will infer the schema from the keys.
-        # write_disposition="replace" handles the TRUNCATE logic.
+        with engine.begin() as connection:
+            # 3. TRUNCATE TABLE
+            logger.info("Truncating table 'regulatory_rules'...")
+            connection.execute(text("TRUNCATE TABLE regulatory_rules;"))
+            
+            # 4. DUMP DATA using Pandas
+            logger.info(f"Inserting {len(cleaned_df)} clean rows...")
+            cleaned_df.to_sql(
+                'regulatory_rules', 
+                con=connection, 
+                if_exists='append', 
+                index=False,
+                method='multi' 
+            )
+            
+        logger.success(f"Successfully loaded {len(cleaned_df)} rows to DB.")
+        return len(cleaned_df)
         
-        load_info = pipeline.run(
-            rules_data, 
-            table_name="Regulatory_Rules", 
-            write_disposition="replace",
-            primary_key="rule_id"
-        )
-        
-        logger.success(f"DLT Load Complete. Details: {load_info}")
-        return load_info
     except Exception as e:
-        logger.critical(f"DLT Load FAILED: {e}")
+        logger.critical(f"Database Load FAILED (SQLAlchemy): {e}")
         raise e
 
 # ---------------------------------------------------------
@@ -690,9 +698,7 @@ def process_area_flow():
         # Save Local CSV
         rules_df = pd.DataFrame(structured_rules)
         rules_df.to_csv(RULES_CSV_OUTPUT_FILE, index=False, quoting=csv.QUOTE_ALL)
-        
-        # DLT Load
-        load_rules_to_db(structured_rules)
+        load_rules_to_db(rules_df)
     else:
         logger.error("Failed to extract rules.")
 

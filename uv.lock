@@ -594,6 +594,7 @@ dependencies = [
     { name = "pdfplumber" },
     { name = "prefect" },
     { name = "psycopg2-binary" },
+    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
@@ -612,6 +613,7 @@ requires-dist = [
     { name = "pdfplumber", specifier = ">=0.11.8" },
     { name = "prefect", specifier = ">=3.6.4" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
+    { name = "sqlalchemy", specifier = ">=2.0.44" },
 ]
 
 [[package]]

@@ -19,4 +19,5 @@ dependencies = [
     "pdfplumber>=0.11.8",
     "prefect>=3.6.4",
     "psycopg2-binary>=2.9.11",
+    "sqlalchemy>=2.0.44",
 ]
